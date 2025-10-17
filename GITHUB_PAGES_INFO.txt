@@ -1,0 +1,89 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                 🚀 GITHUB PAGES DEPLOYMENT - QUICK START                  ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+📋 PREREQUISITES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ GitHub account
+✓ Git installed
+✓ Code ready to push
+
+🚀 QUICK SETUP (2 METHODS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+METHOD 1: Automated Script (Easiest)
+────────────────────────────────────
+./QUICK_GITHUB_SETUP.sh
+
+METHOD 2: Manual Commands
+─────────────────────────
+1. Create repo on GitHub: https://github.com/new
+   Name: sonora-internacional
+   Visibility: Private (recommended)
+
+2. Push code:
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git remote add origin https://github.com/YOUR_USERNAME/sonora-internacional.git
+   git branch -M main
+   git push -u origin main
+
+3. Enable GitHub Pages:
+   Settings → Pages → Source: GitHub Actions
+
+🌐 YOUR SITE WILL BE AT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+https://YOUR_USERNAME.github.io/sonora-internacional/
+
+🔐 DEFAULT PASSWORD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+sonora2025
+
+⚠️  CHANGE IT BEFORE SHARING!
+Edit: src/app/services/auth.service.ts
+
+🔄 AUTOMATIC DEPLOYMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Every git push → Automatic build & deploy
+Takes ~2-3 minutes
+
+📝 MAKING UPDATES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+git add .
+git commit -m "Your changes"
+git push
+
+→ Automatic deployment starts!
+
+📖 FULL DOCUMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+See: GITHUB_DEPLOYMENT.md
+
+✅ FEATURES ON GITHUB PAGES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ Free hosting
+✓ HTTPS enabled
+✓ Automatic deployments
+✓ Full application functionality
+✓ PDF downloads work
+✓ Mobile responsive
+✓ No server needed
+
+🎯 COMPARISON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GitHub Pages                      VPS Deployment
+─────────────────                 ──────────────
+✓ Free                            → Costs money
+✓ Automatic deployment            → Manual deployment
+✓ Zero maintenance                → Need to maintain
+✓ Global CDN                      → Single location
+✓ HTTPS included                  → Need Certbot
+✗ Static only (OK for this app)   ✓ Any backend
+✓ Perfect for this project        ✓ If you need more
+
+BOTH OPTIONS WORK GREAT! Choose based on your preference.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+

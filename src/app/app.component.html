@@ -1,0 +1,316 @@
+<app-login *ngIf="!isAuthenticated"></app-login>
+
+<div class="container" *ngIf="isAuthenticated">
+  <div class="header">
+    <div class="header-content">
+      <div>
+        <h1>🎵 Sonora Internacional</h1>
+        <p class="subtitle">Calculateur de Répartition des Cachets</p>
+      </div>
+      <button class="btn-logout" (click)="logout()">
+        🚪 Déconnexion
+      </button>
+    </div>
+  </div>
+
+  <form [formGroup]="payrollForm" (ngSubmit)="calculate()">
+    <!-- General Information -->
+    <div class="card">
+      <h2>📋 Informations Générales</h2>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="grossAmount">Montant Brut (Devis) *</label>
+          <input 
+            type="number" 
+            id="grossAmount" 
+            formControlName="grossAmount"
+            placeholder="1500.00"
+            step="0.01">
+          <div class="error" *ngIf="payrollForm.get('grossAmount')?.invalid && payrollForm.get('grossAmount')?.touched">
+            Veuillez entrer un montant valide
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="additionalTravelFees">Frais de Déplacement Supplémentaires</label>
+          <input 
+            type="number" 
+            id="additionalTravelFees" 
+            formControlName="additionalTravelFees"
+            placeholder="0.00"
+            step="0.01">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="finderName">Apporteur d'Affaire (Personne qui a trouvé le concert) *</label>
+          <select id="finderName" formControlName="finderName">
+            <option value="">Sélectionner l'apporteur</option>
+            <option *ngFor="let musician of getAvailableMusicians()" [value]="musician">
+              {{ musician }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="personalBacklineOwner">Propriétaire du Backline Personnel</label>
+          <select id="personalBacklineOwner" formControlName="personalBacklineOwner">
+            <option value="">Aucun</option>
+            <option *ngFor="let musician of getAvailableMusicians()" [value]="musician">
+              {{ musician }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <strong>ℹ️ Calculs Automatiques :</strong>
+        <ul>
+          <li>Sono du Groupe : 20€ si devis ≤ 1 300€, sinon 30€</li>
+          <li>Frais de Voiture : 10€ par conducteur (coché ci-dessous)</li>
+          <li>Commission Apporteur : 10% du (montant brut - frais)</li>
+          <li>Prime d'Ancienneté : 2€ par an par musicien</li>
+        </ul>
+      </div>
+
+      <!-- Instrument Rentals Between Musicians (inside Informations Générales) -->
+      <div style="margin-top: 30px;">
+        <div class="subsection-header">
+          <h3>🎸 Locations d'Instruments Entre Musiciens</h3>
+          <button type="button" class="btn btn-secondary btn-sm" (click)="addInstrumentRental()">
+            + Ajouter une Location
+          </button>
+        </div>
+
+        <div class="info-box-small" style="margin: 15px 0;">
+          <p style="margin: 0; color: #4a5568; font-size: 13px;">
+            Si un musicien A loue un instrument à un musicien B, alors B reçoit +10€ et A paye -10€ 
+            (déduit de leur cachet final).
+          </p>
+        </div>
+
+        <div formArrayName="instrumentRentals">
+          <div *ngIf="instrumentRentals.length === 0" class="empty-state-small">
+            <p>Aucune location d'instrument</p>
+          </div>
+
+          <div *ngFor="let rental of instrumentRentals.controls; let i = index" 
+               [formGroupName]="i" 
+               class="rental-row">
+            <div class="rental-grid">
+              <div class="form-group">
+                <label>Instrument *</label>
+                <input type="text" formControlName="instrument" placeholder="Ex: Congas, Djembé...">
+              </div>
+
+              <div class="form-group">
+                <label>Loueur (qui paye) *</label>
+                <select formControlName="renterName">
+                  <option value="">Sélectionner</option>
+                  <option *ngFor="let musician of getAvailableMusicians()" [value]="musician">
+                    {{ musician }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Propriétaire (qui reçoit) *</label>
+                <select formControlName="ownerName">
+                  <option value="">Sélectionner</option>
+                  <option *ngFor="let musician of getAvailableMusicians()" [value]="musician">
+                    {{ musician }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Montant</label>
+                <input type="number" formControlName="amount" min="0" step="0.01" placeholder="10.00">
+              </div>
+
+              <div class="form-group">
+                <button 
+                  type="button" 
+                  class="btn btn-danger btn-sm" 
+                  (click)="removeInstrumentRental(i)">
+                  🗑️ Supprimer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Musicians -->
+    <div class="card">
+      <div class="card-header">
+        <h2>👥 Musiciens</h2>
+        <button type="button" class="btn btn-secondary" (click)="addNewMusician()">
+          + Ajouter un Musicien
+        </button>
+      </div>
+
+      <div formArrayName="musicians">
+        <div *ngFor="let musician of musicians.controls; let i = index" 
+             [formGroupName]="i" 
+             class="musician-row">
+          <div class="musician-grid">
+            <div class="form-group">
+              <label>Nom *</label>
+              <input type="text" formControlName="name" placeholder="Nom du musicien">
+            </div>
+
+            <div class="form-group">
+              <label>Ancienneté (années) *</label>
+              <input type="number" formControlName="seniorityYears" min="0" placeholder="0">
+            </div>
+
+            <div class="form-group checkbox-group">
+              <label>
+                <input type="checkbox" formControlName="isDriver">
+                <span>Conducteur (10€)</span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <button 
+                type="button" 
+                class="btn btn-danger btn-sm" 
+                (click)="removeMusician(i)"
+                *ngIf="musicians.length > 1">
+                🗑️ Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit Buttons -->
+    <div class="actions">
+      <button type="submit" class="btn btn-primary">
+        💰 Calculer les Cachets
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="reset()">
+        🔄 Réinitialiser
+      </button>
+    </div>
+  </form>
+
+  <!-- Results -->
+  <div id="results" *ngIf="showResults && result" class="results-section">
+    <div class="card results-card" id="results-card">
+      <div class="results-header">
+        <h2>📊 Résultats du Calcul</h2>
+        <button type="button" class="btn btn-download-pdf" (click)="downloadPDF()">
+          📄 Télécharger en PDF
+        </button>
+      </div>
+
+      <!-- Summary -->
+      <div class="summary-grid">
+        <div class="summary-item">
+          <span class="label">Montant Brut :</span>
+          <span class="value">{{ result.grossAmount.toFixed(2) }}€</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Sono du Groupe :</span>
+          <span class="value negative">-{{ result.backlineFee.toFixed(2) }}€</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Frais de Voiture :</span>
+          <span class="value negative">-{{ result.carFees.toFixed(2) }}€</span>
+        </div>
+        <div class="summary-item" *ngIf="result.personalBacklineFee > 0">
+          <span class="label">Backline Personnel :</span>
+          <span class="value negative">-{{ result.personalBacklineFee.toFixed(2) }}€</span>
+        </div>
+        <div class="summary-item" *ngIf="result.additionalTravelFees > 0">
+          <span class="label">Déplacement Suppl. :</span>
+          <span class="value negative">-{{ result.additionalTravelFees.toFixed(2) }}€</span>
+        </div>
+        <div class="summary-item highlight">
+          <span class="label">Montant Après Frais (S1) :</span>
+          <span class="value">{{ result.amountAfterFees.toFixed(2) }}€</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Commission Apporteur (10%) :</span>
+          <span class="value negative">-{{ result.finderCommission.toFixed(2) }}€</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Total Primes d'Ancienneté :</span>
+          <span class="value negative">-{{ result.totalSeniorityBonus.toFixed(2) }}€</span>
+        </div>
+        <div class="summary-item highlight">
+          <span class="label">Montant à Répartir (S3) :</span>
+          <span class="value">{{ result.amountToDistribute.toFixed(2) }}€</span>
+        </div>
+        <div class="summary-item highlight">
+          <span class="label">Part Égale par Personne :</span>
+          <span class="value">{{ result.equalSharePerPerson.toFixed(2) }}€</span>
+        </div>
+      </div>
+
+      <!-- Individual Payments -->
+      <h3>💵 Paiements Individuels</h3>
+      <div class="payments-container">
+        <div *ngFor="let payment of result.payments" class="payment-card">
+          <div class="payment-header">
+            <h4>{{ payment.name }}</h4>
+            <div class="payment-total">{{ payment.total.toFixed(2) }}€</div>
+          </div>
+          <div class="payment-breakdown">
+            <div class="breakdown-item">
+              <span>Part Égale :</span>
+              <span>{{ payment.equalShare.toFixed(2) }}€</span>
+            </div>
+            <div class="breakdown-item" *ngIf="payment.seniorityBonus > 0">
+              <span>Prime d'Ancienneté :</span>
+              <span class="positive">+{{ payment.seniorityBonus.toFixed(2) }}€</span>
+            </div>
+            <div class="breakdown-item" *ngIf="payment.finderCommission > 0">
+              <span>Commission Apporteur :</span>
+              <span class="positive">+{{ payment.finderCommission.toFixed(2) }}€</span>
+            </div>
+            <div class="breakdown-item" *ngIf="payment.carAllowance > 0">
+              <span>Frais de Voiture :</span>
+              <span class="positive">+{{ payment.carAllowance.toFixed(2) }}€</span>
+            </div>
+            <div class="breakdown-item" *ngIf="payment.personalBackline > 0">
+              <span>Backline Personnel :</span>
+              <span class="positive">+{{ payment.personalBackline.toFixed(2) }}€</span>
+            </div>
+            <div class="breakdown-item" *ngIf="payment.instrumentRentalIncome > 0">
+              <span>Location d'Instrument (reçue) :</span>
+              <span class="positive">+{{ payment.instrumentRentalIncome.toFixed(2) }}€</span>
+            </div>
+            <div class="breakdown-item" *ngIf="payment.instrumentRentalExpense > 0">
+              <span>Location d'Instrument (payée) :</span>
+              <span class="negative">-{{ payment.instrumentRentalExpense.toFixed(2) }}€</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Verification -->
+      <div class="verification">
+        <div class="verification-item">
+          <span>Total Payé aux Musiciens :</span>
+          <span>{{ getTotalPaid().toFixed(2) }}€</span>
+        </div>
+        <div class="verification-item">
+          <span>Sono du Groupe (à l'association) :</span>
+          <span>{{ result.backlineFee.toFixed(2) }}€</span>
+        </div>
+        <div class="verification-item highlight">
+          <span>Total Général :</span>
+          <span>{{ (getTotalPaid() + result.backlineFee).toFixed(2) }}€</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
