@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators } fr
 import { PayrollService } from './services/payroll.service';
 import { AuthService } from './services/auth.service';
 import { LoginComponent } from './components/login/login.component';
+import { BudgetComponent } from './components/budget/budget.component';
 import { Musician, PayrollInput, PayrollResult, InstrumentRental } from './models/musician.model';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -11,11 +12,12 @@ import jsPDF from 'jspdf';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LoginComponent],
+  imports: [CommonModule, ReactiveFormsModule, LoginComponent, BudgetComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
+  activeTab: 'payroll' | 'budget' = 'payroll';
   payrollForm!: FormGroup;
   result: PayrollResult | null = null;
   showResults = false;
@@ -47,6 +49,10 @@ export class AppComponent implements OnInit {
   logout(): void {
     this.authService.logout();
     this.reset();
+  }
+
+  switchTab(tab: 'payroll' | 'budget'): void {
+    this.activeTab = tab;
   }
 
   initializeForm(): void {

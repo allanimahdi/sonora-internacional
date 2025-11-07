@@ -5,7 +5,7 @@
     <div class="header-content">
       <div>
         <h1>🎵 Sonora Internacional</h1>
-        <p class="subtitle">Calculateur de Répartition des Cachets</p>
+        <p class="subtitle">Gestion des Cachets et Budget</p>
       </div>
       <button class="btn-logout" (click)="logout()">
         🚪 Déconnexion
@@ -13,6 +13,24 @@
     </div>
   </div>
 
+  <!-- Tab Navigation -->
+  <div class="tabs">
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'payroll'"
+      (click)="switchTab('payroll')">
+      💰 Calculateur de Cachets
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'budget'"
+      (click)="switchTab('budget')">
+      📊 Budget du Groupe
+    </button>
+  </div>
+
+  <!-- Payroll Tab Content -->
+  <div *ngIf="activeTab === 'payroll'">
   <form [formGroup]="payrollForm" (ngSubmit)="calculate()">
     <!-- General Information -->
     <div class="card">
@@ -312,5 +330,14 @@
       </div>
     </div>
   </div>
+  </div>
+  <!-- End Payroll Tab Content -->
+
+  <!-- Budget Tab Content -->
+  <div *ngIf="activeTab === 'budget'">
+    <app-budget></app-budget>
+  </div>
+  <!-- End Budget Tab Content -->
+
 </div>
 

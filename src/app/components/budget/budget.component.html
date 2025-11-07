@@ -1,0 +1,716 @@
+<div class="budget-container">
+  <!-- Header with Summary -->
+  <div class="budget-header">
+    <h2>💰 Budget du Groupe</h2>
+    <div class="header-actions">
+      <button class="btn btn-success btn-sm" (click)="toggleInvoiceForm()">
+        {{ showInvoiceForm ? '❌ Annuler' : '📄 Nouvelle Facture' }}
+      </button>
+      <button class="btn btn-warning btn-sm" (click)="toggleExpenseForm()">
+        {{ showExpenseForm ? '❌ Annuler' : '💸 Nouvelle Dépense' }}
+      </button>
+      <button class="btn btn-primary" (click)="toggleConcertForm()">
+        {{ showConcertForm ? '❌ Annuler' : '➕ Nouveau Concert' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Budget Summary -->
+  <div class="summary-cards" *ngIf="budgetSummary">
+    <div class="summary-card revenue">
+      <div class="card-icon">💵</div>
+      <div class="card-content">
+        <div class="card-label">Revenus Totaux</div>
+        <div class="card-value">{{ budgetSummary.totalRevenue.toFixed(2) }}€</div>
+        <div class="card-details">
+          <span>Cash: {{ budgetSummary.totalCash.toFixed(2) }}€</span>
+          <span>Virement: {{ budgetSummary.totalBankTransfer.toFixed(2) }}€</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-card expenses">
+      <div class="card-icon">💸</div>
+      <div class="card-content">
+        <div class="card-label">Payé aux Musiciens</div>
+        <div class="card-value">{{ budgetSummary.totalPaidOut.toFixed(2) }}€</div>
+        <div class="card-details">
+          <span>Cash: {{ budgetSummary.totalCashPaidOut.toFixed(2) }}€</span>
+          <span>Cachet: {{ budgetSummary.totalCachetPaidOut.toFixed(2) }}€</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-card balance">
+      <div class="card-icon">🏦</div>
+      <div class="card-content">
+        <div class="card-label">Solde Actuel</div>
+        <div class="card-value" [class.negative]="budgetSummary.currentBalance < 0">
+          {{ budgetSummary.currentBalance.toFixed(2) }}€
+        </div>
+        <div class="card-details">
+          <span>Cash: {{ budgetSummary.currentCashBalance.toFixed(2) }}€</span>
+          <span>Banque: {{ budgetSummary.currentBankBalance.toFixed(2) }}€</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transaction Log Button -->
+  <div class="transaction-log-toggle">
+    <button class="btn btn-info" (click)="toggleTransactionLog()">
+      {{ showTransactionLog ? '❌ Masquer Historique' : '📜 Voir Historique des Transactions' }}
+    </button>
+    <span class="transaction-count" *ngIf="transactionStats">
+      {{ transactionStats.transactionCount }} transaction(s)
+    </span>
+  </div>
+
+  <!-- Transaction Log Section -->
+  <div class="card transaction-log-card" *ngIf="showTransactionLog" id="transaction-log">
+    <div class="transaction-log-header">
+      <h3>📜 Historique des Transactions</h3>
+      <button class="btn btn-secondary btn-sm" (click)="exportTransactions()">
+        💾 Exporter CSV
+      </button>
+    </div>
+
+    <!-- Transaction Stats -->
+    <div class="transaction-stats" *ngIf="transactionStats">
+      <div class="stat-item">
+        <span class="stat-label">Total Revenus:</span>
+        <span class="stat-value income">{{ transactionStats.totalIncome.toFixed(2) }}€</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Total Dépenses:</span>
+        <span class="stat-value expense">{{ transactionStats.totalExpenses.toFixed(2) }}€</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Paiements En Attente:</span>
+        <span class="stat-value pending">{{ transactionStats.pendingPayments.toFixed(2) }}€</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Balance:</span>
+        <span class="stat-value balance" [class.negative]="(transactionStats.totalIncome - transactionStats.totalExpenses) < 0">
+          {{ (transactionStats.totalIncome - transactionStats.totalExpenses).toFixed(2) }}€
+        </span>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="transaction-filters">
+      <h4>🔍 Filtres</h4>
+      <div class="filter-row">
+        <div class="filter-group">
+          <label>Type de Transaction:</label>
+          <select [(ngModel)]="selectedTransactionType" (change)="applyTransactionFilters()">
+            <option value="all">Tous les types</option>
+            <option value="concert_income">💰 Revenu Concert</option>
+            <option value="deposit_income">💳 Acompte Reçu</option>
+            <option value="payment_out">💸 Cachet Payé</option>
+            <option value="expense_out">🔧 Remboursement</option>
+            <option value="invoice_submitted">📄 Facture Soumise</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Musicien:</label>
+          <select [(ngModel)]="selectedMusician" (change)="applyTransactionFilters()">
+            <option value="all">Tous les musiciens</option>
+            <option *ngFor="let musician of defaultMusicians" [value]="musician">
+              {{ musician }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Statut:</label>
+          <select [(ngModel)]="selectedStatus" (change)="applyTransactionFilters()">
+            <option value="all">Tous les statuts</option>
+            <option value="completed">✅ Terminé</option>
+            <option value="pending">⏳ En Attente</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-row">
+        <div class="filter-group">
+          <label>Date Début:</label>
+          <input type="date" [(ngModel)]="startDate" (change)="applyTransactionFilters()">
+        </div>
+
+        <div class="filter-group">
+          <label>Date Fin:</label>
+          <input type="date" [(ngModel)]="endDate" (change)="applyTransactionFilters()">
+        </div>
+
+        <div class="filter-group">
+          <button class="btn btn-secondary btn-sm" (click)="resetTransactionFilters()">
+            🔄 Réinitialiser Filtres
+          </button>
+        </div>
+      </div>
+
+      <div class="filter-results">
+        Affichage de <strong>{{ filteredTransactions.length }}</strong> transaction(s) sur {{ transactions.length }}
+      </div>
+    </div>
+
+    <!-- Transaction List -->
+    <div class="transaction-list">
+      <div class="transaction-item" 
+           *ngFor="let transaction of filteredTransactions"
+           [class]="getTransactionTypeClass(transaction.type)">
+        <div class="transaction-date">
+          <div class="date-day">{{ transaction.date | date:'dd' }}</div>
+          <div class="date-month">{{ transaction.date | date:'MMM' }}</div>
+          <div class="date-year">{{ transaction.date | date:'yyyy' }}</div>
+        </div>
+
+        <div class="transaction-details">
+          <div class="transaction-type">
+            <span class="type-badge" [class]="getTransactionTypeClass(transaction.type)">
+              {{ getTransactionTypeLabel(transaction.type) }}
+            </span>
+            <span class="status-badge" [class]="transaction.status">
+              {{ transaction.status === 'completed' ? '✅ Terminé' : '⏳ En Attente' }}
+            </span>
+          </div>
+
+          <div class="transaction-description">
+            {{ transaction.description }}
+          </div>
+
+          <div class="transaction-meta">
+            <span *ngIf="transaction.paymentMethod" class="meta-item">
+              {{ getPaymentMethodLabel(transaction.paymentMethod) }}
+            </span>
+            <span *ngIf="transaction.relatedMusician" class="meta-item">
+              👤 {{ transaction.relatedMusician }}
+            </span>
+            <span *ngIf="transaction.relatedConcert" class="meta-item">
+              🎵 {{ transaction.relatedConcert }}
+            </span>
+          </div>
+        </div>
+
+        <div class="transaction-amount" [class.income]="transaction.isIncome" [class.expense]="!transaction.isIncome">
+          <div class="amount-value">
+            {{ transaction.isIncome ? '+' : '-' }}{{ transaction.amount.toFixed(2) }}€
+          </div>
+          <div class="amount-label">
+            {{ transaction.isIncome ? 'Revenu' : 'Dépense' }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state-small" *ngIf="filteredTransactions.length === 0">
+        <p>Aucune transaction trouvée avec les filtres sélectionnés.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Invoice Form -->
+  <div class="card form-card" *ngIf="showInvoiceForm" id="invoice-form">
+    <h3>{{ editingInvoiceId ? '✏️ Modifier la Facture' : '📄 Nouvelle Facture Musicien' }}</h3>
+    
+    <form [formGroup]="invoiceForm" (ngSubmit)="saveInvoice()">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="invoice-musician">Musicien *</label>
+          <select id="invoice-musician" formControlName="musicianName">
+            <option value="">Sélectionner</option>
+            <option *ngFor="let musician of defaultMusicians" [value]="musician">
+              {{ musician }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="invoice-date">Date *</label>
+          <input type="date" id="invoice-date" formControlName="date">
+        </div>
+
+        <div class="form-group">
+          <label for="invoice-amount">Montant (€) *</label>
+          <input type="number" id="invoice-amount" formControlName="amount" step="0.01" min="0">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="invoice-description">Description (Achat) *</label>
+        <input type="text" id="invoice-description" formControlName="description" placeholder="Ex: Cymbale Zildjian 18&quot;">
+      </div>
+
+      <div class="form-group">
+        <label for="invoice-notes">Notes (optionnel)</label>
+        <textarea id="invoice-notes" formControlName="notes" rows="2"></textarea>
+      </div>
+
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" formControlName="verified">
+          <span>Vérifiée et Approuvée</span>
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-success">
+          {{ editingInvoiceId ? '💾 Sauvegarder' : '➕ Ajouter Facture' }}
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="toggleInvoiceForm()">
+          Annuler
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Expense Form -->
+  <div class="card form-card" *ngIf="showExpenseForm" id="expense-form">
+    <h3>{{ editingExpenseId ? '✏️ Modifier la Dépense' : '💸 Nouvelle Dépense' }}</h3>
+    
+    <form [formGroup]="expenseForm" (ngSubmit)="saveExpense()">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="expense-date">Date *</label>
+          <input type="date" id="expense-date" formControlName="date">
+        </div>
+
+        <div class="form-group">
+          <label for="expense-description">Description *</label>
+          <input type="text" id="expense-description" formControlName="description" placeholder="Ex: Réparation enceinte">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="expense-amount">Montant (€) *</label>
+          <input type="number" id="expense-amount" formControlName="amount" step="0.01" min="0">
+        </div>
+
+        <div class="form-group">
+          <label for="expense-refundedTo">Remboursé à *</label>
+          <select id="expense-refundedTo" formControlName="refundedTo">
+            <option value="">Sélectionner</option>
+            <option *ngFor="let musician of defaultMusicians" [value]="musician">
+              {{ musician }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="expense-payment-method">Méthode de Remboursement *</label>
+          <select id="expense-payment-method" formControlName="paymentMethod">
+            <option value="cash">💵 Espèces</option>
+            <option value="transfer">🏦 Virement</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="expense-notes">Notes (optionnel)</label>
+        <textarea id="expense-notes" formControlName="notes" rows="2"></textarea>
+      </div>
+
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" formControlName="refunded">
+          <span>Remboursement Effectué</span>
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-warning">
+          {{ editingExpenseId ? '💾 Sauvegarder' : '➕ Ajouter Dépense' }}
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="toggleExpenseForm()">
+          Annuler
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Concert Form -->
+  <div class="card form-card" *ngIf="showConcertForm" id="concert-form">
+    <h3>{{ editingConcertId ? '✏️ Modifier le Concert' : '📝 Nouveau Concert' }}</h3>
+    
+    <form [formGroup]="concertForm" (ngSubmit)="saveConcert()">
+      <!-- Concert Details -->
+      <div class="form-section">
+        <h4>Détails du Concert</h4>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="date">Date du Concert *</label>
+            <input type="date" id="date" formControlName="date">
+          </div>
+
+          <div class="form-group">
+            <label for="location">Lieu / Événement *</label>
+            <input type="text" id="location" formControlName="location" placeholder="Ex: Le Sunside, Festival XYZ...">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cashAmount">Montant Espèces (€) *</label>
+            <input type="number" id="cashAmount" formControlName="cashAmount" step="0.01" min="0">
+          </div>
+
+          <div class="form-group">
+            <label for="bankTransferAmount">Montant Virement (€) *</label>
+            <input type="number" id="bankTransferAmount" formControlName="bankTransferAmount" step="0.01" min="0">
+          </div>
+
+          <div class="form-group">
+            <label>Total Concert</label>
+            <div class="total-display">
+              {{ (concertForm.get('cashAmount')?.value + concertForm.get('bankTransferAmount')?.value).toFixed(2) }}€
+            </div>
+          </div>
+        </div>
+
+        <!-- Deposit Section -->
+        <div class="deposit-section">
+          <h5>💰 Acompte / Dépôt Déjà Reçu</h5>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="depositCash">Acompte Espèces (€)</label>
+              <input type="number" id="depositCash" formControlName="depositCash" step="0.01" min="0">
+            </div>
+
+            <div class="form-group">
+              <label for="depositTransfer">Acompte Virement (€)</label>
+              <input type="number" id="depositTransfer" formControlName="depositTransfer" step="0.01" min="0">
+            </div>
+
+            <div class="form-group">
+              <label>Total Acompte</label>
+              <div class="total-display deposit">
+                {{ (concertForm.get('depositCash')?.value + concertForm.get('depositTransfer')?.value).toFixed(2) }}€
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="notes">Notes (optionnel)</label>
+          <textarea id="notes" formControlName="notes" rows="2" placeholder="Notes ou commentaires..."></textarea>
+        </div>
+      </div>
+
+      <!-- Musician Payments -->
+      <div class="form-section">
+        <div class="subsection-header">
+          <h4>Répartition des Cachets</h4>
+          <button type="button" class="btn btn-secondary btn-sm" (click)="addMusicianPayment()">
+            + Ajouter Musicien
+          </button>
+        </div>
+
+        <div class="payments-summary-bar">
+          <div class="summary-item">
+            <span>Total à Payer:</span>
+            <strong>{{ getTotalPayments().toFixed(2) }}€</strong>
+          </div>
+          <div class="summary-item">
+            <span>Dont Cash:</span>
+            <strong>{{ getTotalCashPayments().toFixed(2) }}€</strong>
+          </div>
+          <div class="summary-item">
+            <span>Dont Cachet:</span>
+            <strong>{{ getTotalCachetPayments().toFixed(2) }}€</strong>
+          </div>
+        </div>
+
+        <div formArrayName="payments">
+          <div *ngFor="let payment of payments.controls; let i = index" 
+               [formGroupName]="i" 
+               class="payment-row">
+            <div class="payment-grid">
+              <div class="form-group">
+                <label>Musicien *</label>
+                <input type="text" formControlName="musicianName" placeholder="Nom">
+              </div>
+
+              <div class="form-group">
+                <label>Montant (€) *</label>
+                <input type="number" formControlName="amount" step="0.01" min="0">
+              </div>
+
+              <div class="form-group">
+                <label>Méthode de Paiement</label>
+                <select formControlName="paymentMethod">
+                  <option value="cash">💵 Espèces</option>
+                  <option value="cachet">🏦 Cachet (Virement)</option>
+                </select>
+              </div>
+
+              <div class="form-group checkbox-group">
+                <label>
+                  <input type="checkbox" formControlName="paid">
+                  <span>Payé</span>
+                </label>
+              </div>
+
+              <div class="form-group">
+                <button 
+                  type="button" 
+                  class="btn btn-danger btn-sm" 
+                  (click)="removeMusicianPayment(i)"
+                  *ngIf="payments.length > 1">
+                  🗑️
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">
+          {{ editingConcertId ? '💾 Sauvegarder' : '➕ Ajouter Concert' }}
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="toggleConcertForm()">
+          Annuler
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Musician Balances Table -->
+  <div class="card" *ngIf="musicianBalances.length > 0">
+    <h3>👥 Soldes et Factures par Musicien</h3>
+    <div class="musician-balances-grid">
+      <div class="balance-column" *ngFor="let balance of musicianBalances">
+        <div class="musician-header">{{ balance.musicianName }}</div>
+        
+        <div class="balance-section">
+          <div class="section-title">Cachets Concerts</div>
+          <div class="balance-row">
+            <span class="label">Total Gagné:</span>
+            <span class="value">{{ balance.totalEarned.toFixed(2) }}€</span>
+          </div>
+          <div class="balance-row">
+            <span class="label">Déjà Payé:</span>
+            <span class="value paid">{{ balance.totalPaid.toFixed(2) }}€</span>
+          </div>
+        </div>
+
+        <div class="balance-section" *ngIf="balance.totalExpenseRefunds > 0">
+          <div class="section-title">Remboursements</div>
+          <div class="balance-row">
+            <span class="label">À Rembourser:</span>
+            <span class="value expense">{{ balance.totalExpenseRefunds.toFixed(2) }}€</span>
+          </div>
+        </div>
+
+        <div class="balance-section invoice-section" *ngIf="balance.totalInvoices > 0">
+          <div class="section-title">Factures Soumises</div>
+          <div class="balance-row">
+            <span class="label">Total Factures:</span>
+            <span class="value">{{ balance.totalInvoices.toFixed(2) }}€</span>
+          </div>
+          <div class="balance-row highlight">
+            <span class="label">Différence:</span>
+            <span class="value" [class.negative]="balance.invoiceDifference < 0" [class.positive]="balance.invoiceDifference > 0">
+              {{ balance.invoiceDifference.toFixed(2) }}€
+            </span>
+          </div>
+          <div class="invoice-hint" *ngIf="balance.invoiceDifference !== 0">
+            {{ balance.invoiceDifference > 0 ? '⚠️ À Compléter' : '⚠️ Trop de factures' }}
+          </div>
+        </div>
+
+        <div class="balance-row total-row">
+          <span class="label">TOTAL À PAYER:</span>
+          <span class="value" [class.negative]="balance.remainingToPay < 0">
+            {{ balance.remainingToPay.toFixed(2) }}€
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expenses List -->
+  <div class="card" *ngIf="expenses.length > 0">
+    <h3>💸 Dépenses et Remboursements</h3>
+    <div class="expense-list">
+      <div class="expense-item" *ngFor="let expense of expenses">
+        <div class="expense-header">
+          <div class="expense-info">
+            <h4>{{ expense.description }}</h4>
+            <div class="expense-meta">
+              <span class="date">📅 {{ expense.date }}</span>
+              <span class="amount">💰 {{ expense.amount.toFixed(2) }}€</span>
+              <span class="refunded-to">👤 Remboursé à: {{ expense.refundedTo }}</span>
+              <span class="badge" [class.cash]="expense.paymentMethod === 'cash'" 
+                    [class.transfer]="expense.paymentMethod === 'transfer'">
+                {{ expense.paymentMethod === 'cash' ? '💵 Espèces' : '🏦 Virement' }}
+              </span>
+            </div>
+            <div class="expense-notes" *ngIf="expense.notes">
+              <small>📝 {{ expense.notes }}</small>
+            </div>
+          </div>
+          <div class="expense-actions">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                [checked]="expense.refunded"
+                (change)="toggleExpenseRefunded(expense.id)"
+                [disabled]="expense.refunded">
+              <span [class.refunded]="expense.refunded">
+                {{ expense.refunded ? '✅ Remboursé' : '⏳ À Rembourser' }}
+              </span>
+            </label>
+            <button class="btn btn-secondary btn-sm" (click)="editExpense(expense)">
+              ✏️ Modifier
+            </button>
+            <button class="btn btn-danger btn-sm" (click)="deleteExpense(expense.id)">
+              🗑️ Supprimer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Invoices List -->
+  <div class="card" *ngIf="invoices.length > 0">
+    <h3>📄 Factures Musiciens</h3>
+    <div class="invoice-list">
+      <div class="invoice-item" *ngFor="let invoice of invoices">
+        <div class="invoice-header">
+          <div class="invoice-info">
+            <h4>{{ invoice.musicianName }} - {{ invoice.description }}</h4>
+            <div class="invoice-meta">
+              <span class="date">📅 {{ invoice.date }}</span>
+              <span class="amount">💰 {{ invoice.amount.toFixed(2) }}€</span>
+              <span class="badge" [class.verified]="invoice.verified" [class.pending]="!invoice.verified">
+                {{ invoice.verified ? '✅ Vérifiée' : '⏳ En Attente' }}
+              </span>
+            </div>
+            <div class="invoice-notes" *ngIf="invoice.notes">
+              <small>📝 {{ invoice.notes }}</small>
+            </div>
+          </div>
+          <div class="invoice-actions">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                [checked]="invoice.verified"
+                (change)="toggleInvoiceVerified(invoice.id)"
+                [disabled]="invoice.verified">
+              <span [class.verified]="invoice.verified">
+                {{ invoice.verified ? '✅ Vérifiée' : '⏳ Vérifier' }}
+              </span>
+            </label>
+            <button class="btn btn-secondary btn-sm" (click)="editInvoice(invoice)">
+              ✏️ Modifier
+            </button>
+            <button class="btn btn-danger btn-sm" (click)="deleteInvoice(invoice.id)">
+              🗑️ Supprimer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Concerts List -->
+  <div class="card concerts-list" *ngIf="concerts.length > 0">
+    <div class="list-header">
+      <h3>📋 Historique des Concerts</h3>
+      <button class="btn btn-danger btn-sm" (click)="clearAllData()">
+        🗑️ Tout Supprimer
+      </button>
+    </div>
+
+    <div class="concert-item" *ngFor="let concert of concerts">
+      <div class="concert-header">
+        <div class="concert-info">
+          <h4>{{ concert.location }}</h4>
+          <div class="concert-meta">
+            <span class="date">📅 {{ concert.date }}</span>
+            <span class="amount">💰 {{ concert.totalAmount.toFixed(2) }}€</span>
+            <span class="details">
+              (Cash: {{ concert.cashAmount.toFixed(2) }}€ | Virement: {{ concert.bankTransferAmount.toFixed(2) }}€)
+            </span>
+          </div>
+          <div class="concert-deposit" *ngIf="concert.totalDeposit > 0">
+            <strong>💰 Acompte reçu: {{ concert.totalDeposit.toFixed(2) }}€</strong>
+            <span class="deposit-detail">
+              (Cash: {{ concert.depositCash.toFixed(2) }}€ | Virement: {{ concert.depositTransfer.toFixed(2) }}€)
+            </span>
+          </div>
+          <div class="concert-notes" *ngIf="concert.notes">
+            <small>📝 {{ concert.notes }}</small>
+          </div>
+        </div>
+        <div class="concert-actions">
+          <button class="btn btn-secondary btn-sm" (click)="editConcert(concert)">
+            ✏️ Modifier
+          </button>
+          <button class="btn btn-danger btn-sm" (click)="deleteConcert(concert.id)">
+            🗑️ Supprimer
+          </button>
+        </div>
+      </div>
+
+      <!-- Concert Payments -->
+      <div class="concert-payments">
+        <div class="payment-item" *ngFor="let payment of concert.payments">
+          <div class="payment-musician">
+            {{ payment.musicianName }}
+          </div>
+          <div class="payment-amount">
+            {{ payment.amount.toFixed(2) }}€
+          </div>
+          <div class="payment-method">
+            <span class="badge" [class.cash]="payment.paymentMethod === 'cash'" 
+                  [class.cachet]="payment.paymentMethod === 'cachet'">
+              {{ payment.paymentMethod === 'cash' ? '💵 Espèces' : '🏦 Cachet' }}
+            </span>
+          </div>
+          <div class="payment-status">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                [checked]="payment.paid"
+                (change)="togglePaymentStatus(concert.id, payment.musicianName)"
+                [disabled]="payment.paid">
+              <span [class.paid]="payment.paid">
+                {{ payment.paid ? '✅ Payé' : '⏳ À Payer' }}
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Concert Summary -->
+        <div class="concert-summary">
+          <div class="summary-row">
+            <span>Total à Payer:</span>
+            <strong>{{ getConcertTotal(concert).toFixed(2) }}€</strong>
+          </div>
+          <div class="summary-row">
+            <span>Déjà Payé:</span>
+            <strong class="paid">{{ getConcertPaid(concert).toFixed(2) }}€</strong>
+          </div>
+          <div class="summary-row highlight">
+            <span>Reste:</span>
+            <strong>{{ getConcertRemaining(concert).toFixed(2) }}€</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="card empty-state" *ngIf="concerts.length === 0 && expenses.length === 0 && invoices.length === 0 && !showConcertForm && !showExpenseForm && !showInvoiceForm">
+    <div class="empty-icon">🎵</div>
+    <h3>Aucune Donnée Enregistrée</h3>
+    <p>Commencez par ajouter un concert, une dépense ou une facture pour suivre le budget du groupe.</p>
+  </div>
+</div>
