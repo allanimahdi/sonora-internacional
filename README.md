@@ -65,22 +65,6 @@ npm start
 
 4. Open your browser and navigate to `http://localhost:4200`
 
-## 🔐 Authentication
-
-### Default Password
-
-The application is protected with a password: **sonora2025**
-
-To change the password, edit:
-```
-src/app/services/auth.service.ts
-```
-
-Find and modify:
-```typescript
-private readonly VALID_PASSWORD = 'sonora2025';
-```
-
 ## Usage
 
 ### Basic Workflow
